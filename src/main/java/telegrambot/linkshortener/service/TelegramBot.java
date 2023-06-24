@@ -1,6 +1,7 @@
-package telegrambot.linkshortener.config.service;
+package telegrambot.linkshortener.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
@@ -8,6 +9,7 @@ import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import telegrambot.linkshortener.config.BotConfig;
+import telegrambot.linkshortener.model.User;
 
 @Component
 @RequiredArgsConstructor
@@ -16,6 +18,9 @@ import telegrambot.linkshortener.config.BotConfig;
 public class TelegramBot extends TelegramLongPollingBot {
 
     private final BotConfig botConfig;
+
+    @Autowired
+    private UserService userService;
 
     @Override
     public void onUpdateReceived(Update update) {
@@ -26,8 +31,11 @@ public class TelegramBot extends TelegramLongPollingBot {
 
             if (command.equals("/start")) {
                 sendMessage(chatId, "Отправь мне ссылку, которую нужно сократить");
-            } else {
-
+            } else if (command.equals("/save")) {
+                User user = new User();
+                user.setUserName(update.getMessage().getChat().getUserName());
+                user.setChatId(chatId);
+                userService.saveUser(user);
             }
         }
     }
@@ -36,12 +44,10 @@ public class TelegramBot extends TelegramLongPollingBot {
     public String getBotUsername() {
         return botConfig.getName();
     }
-
     @Override
     public String getBotToken() {
         return botConfig.getToken();
     }
-
     private void sendMessage(long chatId, String textToSend) {
         SendMessage message = new SendMessage();
         message.setChatId(String.valueOf(chatId));
