@@ -9,6 +9,7 @@ import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.util.Date;
+import java.util.List;
 
 import static jakarta.persistence.TemporalType.*;
 
@@ -25,6 +26,10 @@ public class User {
 
     @NotNull
     private String userName;
+    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @JoinColumn(name = "user_id")
+
+    private List<Url> urls;
 
     @CreationTimestamp
     @Temporal(TIMESTAMP)
