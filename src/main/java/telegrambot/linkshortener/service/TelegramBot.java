@@ -3,6 +3,7 @@ package telegrambot.linkshortener.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.PropertySource;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
@@ -31,13 +32,13 @@ public class TelegramBot extends TelegramLongPollingBot {
     private final UrlController urlController;
     private final UrlChecker urlChecker;
     private final ShortUrlGenerator shortUrlGenerator;
+
     @Autowired
     private final UserService userService;
     @Autowired
     private final UrlService urlService;
     @Autowired
     private final UrlRepository urlRepository;
-
     @Autowired
     private final UserRepository userRepository;
 
@@ -50,17 +51,8 @@ public class TelegramBot extends TelegramLongPollingBot {
 
             if (command.equals("/start")) {
                 sendMessage(chatId, "Отправь мне ссылку, которую нужно сократить");
-            } else if (command.equals("/save")) {
-                User user = new User();
-                user.setUserName(update.getMessage().getChat().getUserName());
-                user.setChatId(chatId);
-                userService.saveUser(user);
             } else {
-                //User user = new User();
                 String longUrlForCheck = update.getMessage().getText();
-                //user.setUserName(update.getMessage().getChat().getUserName());
-                //user.setChatId(chatId);
-                //userService.saveUser(user);
                 if (urlChecker.checkUrl(longUrlForCheck)) {
                     String checkedUrl = longUrlForCheck;
                     saveData(checkedUrl, update);
@@ -105,24 +97,27 @@ public class TelegramBot extends TelegramLongPollingBot {
             user.setChatId(update.getMessage().getChatId());
             user.setUserName(update.getMessage().getChat().getUserName());
             user.setUrls(urls);
-            userService.saveUser(user);
 
             Url url = new Url();
             url.setLongUrl(checkedUrl);
-            url.setShortUrl(shortUrlGenerator.generateShortLink());
+            String shortLink = shortUrlGenerator.generateShortLink();
+            url.setShortUrl(shortLink);
             urls.add(url);
             urlService.saveUrl(url);
+            userService.saveUser(user);
+            sendMessage(chatId, "Сокращенная ссылка:" + " " + "http://shortit4me.fun/" + shortLink);
 
         } else {
             User currentUser = userRepository.findByChatId(chatId).get();
-            List<Url> urls = currentUser.getUrls();
+            List<Url> userUrls = currentUser.getUrls();
             Url newUserUrl = new Url();
-            newUserUrl.setLongUrl(сру);
+            newUserUrl.setLongUrl(checkedUrl);
+            String shortLink = shortUrlGenerator.generateShortLink();
+            newUserUrl.setShortUrl(shortLink);
+            userUrls.add(newUserUrl);
+            urlService.saveUrl(newUserUrl);
+            userService.saveUser(currentUser);
+            sendMessage(chatId, "Сокращенная ссылка:" + " " + "http://shortit4me.fun/" + shortLink);
         }
-
-        Url url = new Url();
-        url.setLongUrl(checkedUrl);
-        url.setShortUrl(shortUrlGenerator.generateShortLink());
-        urlService.saveUrl(url);
     }
 }
